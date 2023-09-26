@@ -31,6 +31,7 @@ camera = cv2.VideoCapture(0)
 def tesseract(imagepath):
     # The following is the path to the tesseract executable
     path_to_tesseract = r"/bin/tesseract"
+    #windows: path_to_tesseract = r"C:\Users\Draco\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
     #imagepath = 'test1.jpg'
 
     # Set the Tesseract executable path
