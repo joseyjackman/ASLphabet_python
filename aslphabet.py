@@ -66,7 +66,14 @@ def tesseract(imagepath, platform_id):
     print(text[:-1])
 
 def camera():
-    camera = cv2.VideoCapture(0)
+    width = 1280
+    height = 720
+    camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    camera.set(cv2.CAP_PROP_FPS, 30)
+    camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*'MJPG'))
+
     while camera.isOpened():
         ret, frame = camera.read()
 
