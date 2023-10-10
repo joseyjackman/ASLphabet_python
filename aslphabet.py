@@ -1,3 +1,4 @@
+import PIL.Image
 import cv2
 import numpy as np
 import os
@@ -7,7 +8,8 @@ import mediapipe as mp
 from PIL import Image
 from pytesseract import pytesseract
 import platform
-from tkinter import Tk, Label, Button
+from tkinter import Tk, Label, Button, Canvas, PhotoImage
+from PIL import Image,ImageTk
 
 # Identify platform and assign to variable
 platform_id = str(platform.system())
@@ -23,12 +25,16 @@ holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confi
 # Tkinter setup - starter screen
 root = Tk()
 root.title("ASLphabet")
-root.geometry("350x500")
+root.resizable(width=False, height=False)
 
 def menu():
-    myLabel = Label(root, text="   Welcome to ASLphabet!   \n   ------------   ").place(relx = 0.5,  anchor = tkinter.N)
-    myLabel1 = Label(root, text="Press Q to quit out of the camera.").place(relx = 0.5, rely = 0.4, anchor = tkinter.CENTER)
-    myButton = Button(root, text="Launch Camera", command=camera).place(relx = 0.5, rely = 0.6, anchor = tkinter.CENTER)
+    canvas = Canvas(root, bg="#82A8C9", width=400, height=450)
+    canvas.pack()
+    myLabel = Label(canvas, text="   Welcome User!   \n   ------------   ").place(relx = 0.5,  anchor = tkinter.N)
+    myImage = PhotoImage(file="LogoNoBackground.png").subsample(2)
+    canvas.create_image(210, 150, anchor="center" ,image=myImage)
+    myLabel1 = Label(canvas, text="Press Q to quit out of the camera.").place(relx = 0.5, rely = 0.6, anchor = tkinter.CENTER)
+    myButton = Button(canvas, text="Launch Camera", command=camera).place(relx = 0.5, rely = 0.8, anchor = tkinter.CENTER)
     root.mainloop()
 
 def mediapipe_detection(image):
