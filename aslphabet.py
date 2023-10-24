@@ -5,7 +5,7 @@ import os
 import mediapipe as mp
 from pytesseract import pytesseract
 import platform
-from tkinter import Tk, Label, Button, Canvas, PhotoImage
+from tkinter import Tk, Label, Button, Canvas, PhotoImage, Entry, constants, Text
 from PIL import Image
 
 # Identify platform and assign to variable
@@ -20,6 +20,10 @@ mp_drawing = mp.solutions.drawing_utils
 holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 # Tkinter setup - starter screen
+instructionsopen = None
+settingsopen = None
+texttoimageopen = None
+cameraopen = None
 globalquit = "q"
 root = Tk()
 root.title("ASLphabet")
@@ -43,7 +47,7 @@ def menu():
     canvas2 = Canvas(canvas, bg="#f0f8ff", width=508, height=620)
     canvas2.place(x=506, y=0)
     canvas2.create_image(250, 308, anchor="center" ,image=myImage)
-    myLabel1 = Label(canvas, bg="#e0f8f8", fg="#0071bc", justify="center", font=('Modern', 15), text="Press Q to quit out of the camera.").place(x=70, y=100, width = 330, height = 68)
+    myLabel1 = Label(canvas, bg="#e0f8f8", fg="#0071bc", justify="center", font=('Modern', 15), text=("Press ")+ globalquit + (" to quit out of the camera.")).place(x=70, y=100, width = 330, height = 68)
     myLabel1 = Label(canvas, bg="#e0f8f8", justify="center", font=('Modern', 15), text="Brought to you by: ").place(x=70, y=500, width=330, height=68)
     myButton1 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Launch Camera", command=camera).place(x=50, y=270, width=378, height=68)
     myButton2 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Instruction", command=instructions).place(x=50, y=190, width = 378, height = 68)
@@ -109,6 +113,9 @@ def camera():
     cv2.destroyAllWindows()
     menu()
 
+def lookup(text):
+    text.delete(1.0, constants.END)
+
 def settings():
     child = tkinter.Toplevel(root)
     child.geometry(align2)
@@ -133,6 +140,11 @@ def texttoimage():
     canvas2.place(x=35, y=0)
 
     myLabel = Label(canvas2, bg="#e0f8f8", justify="center", font=('Modern', 30, "bold"), text=("Text-to-Image")).place(x=160, y=2, width=320, height=100)
+    myLabel = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="center", font=('Modern', 15, "bold"), text=("Which ASL sign are you looking for?")).place(x=160, y=85, width=320, height=50)
+    myEntry = Entry(canvas2, justify="center", font=('Modern', 20)).place(x=90, y=150, width=320, height=50)
+    myText = Text(canvas2, font=('Modern', 20), wrap=constants.WORD).place(x=50, y=240, width=520, height=300)
+    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Lookup"), command="").place(x=440, y=150, width=100, height=50)
+
 def instructions():
     child = tkinter.Toplevel(root)
     child.geometry(align2)
@@ -148,7 +160,7 @@ def instructions():
     myLabel1 = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="left", font=('Modern', 20),text="Step 1: ").place(x=25, y=120)
     myLabel2 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15), text="  Use text-to-image in order to find the desired ASL sign.\n  Take note of the finger placements!").place(x=100, y=123)
     myLabel3 = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="left", font=('Modern', 20), text="Step 2: ").place(x=25, y=210)
-    myLabel4 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15),text="  Launch the camera. Present your ASL sign to the camera and \n  take a clear picture. Use the best lighting available to you!").place(x=100, y=213)
+    myLabel4 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15),text="  Launch the camera. Present your ASL sign to the camera and \n  take clear pictures. Use the best lighting available to you!").place(x=100, y=213)
     myLabel5 = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="left", font=('Modern', 20), text="Step 3: ").place(x=25, y=300)
     myLabel6 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15), text="  Observe your results. If the sign was succesfully picked up by\n  the camera - then congratulations! If not, checkout the \n  additional resources provided and try again.").place(x=100, y=303)
     myLabel7 = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="left", font=('Modern', 20), text="Step 4: ").place(x=25, y=410)
