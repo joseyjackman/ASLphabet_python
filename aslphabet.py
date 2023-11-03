@@ -5,8 +5,9 @@ import os
 import mediapipe as mp
 from pytesseract import pytesseract
 import platform
-from tkinter import Tk, Label, Button, Canvas, PhotoImage, Entry, constants, Text
+from tkinter import Tk, Label, Button, Canvas, PhotoImage, Entry, constants, Text, StringVar
 from PIL import Image
+import sqlite3
 
 # Identify platform and assign to variable
 platform_id = str(platform.system())
@@ -20,11 +21,7 @@ mp_drawing = mp.solutions.drawing_utils
 holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 # Tkinter setup - starter screen
-instructionsopen = None
-settingsopen = None
-texttoimageopen = None
-cameraopen = None
-globalquit = "q"
+quit = "q"
 root = Tk()
 root.title("ASLphabet")
 width =1017
@@ -39,7 +36,8 @@ root.geometry(align)
 root.resizable(width=False, height=False)
 root.iconbitmap('Logo.ico')
 
-def menu():
+def menu(quit):
+    globalquit = quit
     canvas = Canvas(root, bg="#e0f8f8", width=width, height=height)
     canvas.pack()
     myLabel = Label(canvas, bg="#e0f8f8", justify="center", font=('Modern', 30, "bold"), text=("Welcome ")+os.getlogin()+"!").place(x=70, y=40, width = 330, height = 68)
@@ -49,10 +47,10 @@ def menu():
     canvas2.create_image(250, 308, anchor="center" ,image=myImage)
     myLabel1 = Label(canvas, bg="#e0f8f8", fg="#0071bc", justify="center", font=('Modern', 15), text=("Press ")+ globalquit + (" to quit out of the camera.")).place(x=70, y=100, width = 330, height = 68)
     myLabel1 = Label(canvas, bg="#e0f8f8", justify="center", font=('Modern', 15), text="Brought to you by: ").place(x=70, y=500, width=330, height=68)
-    myButton1 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Launch Camera", command=camera).place(x=50, y=270, width=378, height=68)
+    myButton1 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Launch Camera", command=lambda:camera(globalquit)).place(x=50, y=270, width=378, height=68)
     myButton2 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Instruction", command=instructions).place(x=50, y=190, width = 378, height = 68)
     myButton3 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Text-to-Image", command=texttoimage).place(x=50, y=350, width=378, height=68)
-    myButton4 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Settings", command=settings).place(x=50, y=430, width=378, height=68)
+    myButton4 = Button(canvas, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text="Settings", command= lambda:settings(canvas)).place(x=50, y=430, width=378, height=68)
     root.mainloop()
 
 def closeAndopenSettings(self):
@@ -89,7 +87,7 @@ def tesseract(imagepath, platform_id):
     # Print the extracted text, excluding the last character
     print(text[:-1])
 
-def camera():
+def camera(globalquit):
     width = 1280
     height = 720
     camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -111,12 +109,34 @@ def camera():
             break
     camera.release()
     cv2.destroyAllWindows()
-    menu()
+    menu(globalquit)
 
 def lookup(text):
     text.delete(1.0, constants.END)
 
-def settings():
+    #Lookup word
+    dictionary = sqlite3.connect("dictionary.db")
+    entry = dictionary.execute('''SELECT video_url FROM dictionary WHERE word=text''')
+
+def refreshMain(self, globalquit):
+    self.destroy()
+    menu(globalquit)
+
+def refreshSettings(self, canvasm):
+    self.destroy()
+    settings(canvasm)
+
+def character_limit(entry_text):
+    if len(entry_text.get()) > 0:
+        entry_text.set(entry_text.get()[-1])
+
+def setglobalquit(entry_text, canvas, child):
+    print(entry_text.get())
+    globalquit = str(entry_text.get())
+    refreshMain(canvas, globalquit)
+    refreshSettings(child, canvas)
+
+def settings(canvasm):
     child = tkinter.Toplevel(root)
     child.geometry(align2)
     child.resizable(width=False, height=False)
@@ -127,6 +147,11 @@ def settings():
     canvas2 = Canvas(canvas, bg="#e0f8f8", width=625, height=height2)
     canvas2.place(x=35, y=0)
     myLabel = Label(canvas2, bg="#e0f8f8", justify="center", font=('Modern', 30, "bold"), text=("Settings")).place(x=160, y=2, width=320, height=100)
+    entry_text = StringVar()  # the text in  your entry
+    myEntry = Entry(canvas2, justify="center", font=('Modern', 20), textvariable=entry_text).place(x=40, y=150,width=50, height=50)
+    entry_text.trace("w", lambda *args: character_limit(entry_text))
+    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Set Global Quit Key"), command= lambda: setglobalquit(entry_text,canvasm, canvas)).place(x=150, y=150, width=200, height=50)
+
 
 def texttoimage():
     child = tkinter.Toplevel(root)
@@ -165,4 +190,4 @@ def instructions():
     myLabel6 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15), text="  Observe your results. If the sign was succesfully picked up by\n  the camera - then congratulations! If not, checkout the \n  additional resources provided and try again.").place(x=100, y=303)
     myLabel7 = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="left", font=('Modern', 20), text="Step 4: ").place(x=25, y=410)
     myLabel8 = Label(canvas2, bg="#e0f8f8", justify="left", font=('Modern', 15),text="  Most importantly - take it easy! Learning a new language is\n  a long process, so try taking it a few signs as a time until\n  you get the hang of it!").place(x=100, y=413)
-menu()
+menu(quit)
