@@ -5,7 +5,7 @@ import os
 import mediapipe as mp
 from pytesseract import pytesseract
 import platform
-from tkinter import Tk, Label, Button, Canvas, PhotoImage, Entry, constants, Text, StringVar
+from tkinter import Tk, Label, Button, Canvas, PhotoImage, Entry, constants, Text, StringVar, Frame
 from PIL import Image
 import sqlite3
 
@@ -111,30 +111,29 @@ def camera(globalquit):
     cv2.destroyAllWindows()
     menu(globalquit)
 
-def lookup(text):
-    text.delete(1.0, constants.END)
+def lookup(myLabel, entrytext):
 
     #Lookup word
-    dictionary = sqlite3.connect("dictionary.db")
-    entry = dictionary.execute('''SELECT video_url FROM dictionary WHERE word=text''')
+    connection = sqlite3.connect("letters.db")
+    cursor = connection.cursor()
+    search = str(entrytext.get())
+    entry = cursor.execute("SELECT letter_url FROM letters WHERE letter=?;",[search])
+    result = cursor.fetchall()
+
+    img = PhotoImage(file=result[0]).subsample(1)
+    myLabel.config(img=img)
 
 def refreshMain(self, globalquit):
     self.destroy()
     menu(globalquit)
 
-def refreshSettings(self, canvasm):
-    self.destroy()
-    settings(canvasm)
-
 def character_limit(entry_text):
     if len(entry_text.get()) > 0:
         entry_text.set(entry_text.get()[-1])
 
-def setglobalquit(entry_text, canvas, child):
-    print(entry_text.get())
+def setglobalquit(entry_text, canvas):
     globalquit = str(entry_text.get())
     refreshMain(canvas, globalquit)
-    refreshSettings(child, canvas)
 
 def settings(canvasm):
     child = tkinter.Toplevel(root)
@@ -150,7 +149,7 @@ def settings(canvasm):
     entry_text = StringVar()  # the text in  your entry
     myEntry = Entry(canvas2, justify="center", font=('Modern', 20), textvariable=entry_text).place(x=40, y=150,width=50, height=50)
     entry_text.trace("w", lambda *args: character_limit(entry_text))
-    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Set Global Quit Key"), command= lambda: setglobalquit(entry_text,canvasm, canvas)).place(x=150, y=150, width=200, height=50)
+    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Set Global Quit Key"), command= lambda: setglobalquit(entry_text,canvasm)).place(x=150, y=150, width=200, height=50)
 
 
 def texttoimage():
@@ -166,9 +165,11 @@ def texttoimage():
 
     myLabel = Label(canvas2, bg="#e0f8f8", justify="center", font=('Modern', 30, "bold"), text=("Text-to-Image")).place(x=160, y=2, width=320, height=100)
     myLabel = Label(canvas2, bg="#e0f8f8", fg="#0071bc", justify="center", font=('Modern', 15, "bold"), text=("Which ASL sign are you looking for?")).place(x=160, y=85, width=320, height=50)
-    myEntry = Entry(canvas2, justify="center", font=('Modern', 20)).place(x=90, y=150, width=320, height=50)
-    myText = Text(canvas2, font=('Modern', 20), wrap=constants.WORD).place(x=50, y=240, width=520, height=300)
-    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Lookup"), command="").place(x=440, y=150, width=100, height=50)
+    entry_text = StringVar()
+    myEntry = Entry(canvas2, justify="center", font=('Modern', 20), textvariable=entry_text).place(x=90, y=150, width=320, height=50)
+    myFrame = Frame(canvas2).place(x=50, y=240, width=520, height=300)
+    myLabel = Label(myFrame, image="")
+    myButton = Button(canvas2, bg="#80CC23", font=('Modern', 18, "bold"), justify="center", text=("Lookup"), command=lambda: lookup(myLabel, entry_text)).place(x=440, y=150, width=100, height=50)
 
 def instructions():
     child = tkinter.Toplevel(root)
