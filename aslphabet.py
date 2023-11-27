@@ -2,7 +2,6 @@ import tkinter
 import cv2
 import os
 import mediapipe as mp
-from pytesseract import pytesseract
 import platform
 import pygame
 from pygame import mixer
@@ -13,6 +12,91 @@ import time  # used to take a break between pictures
 import uuid  # used to name image files
 import sqlite3
 IMAGES_PATH = 'Tensorflow/workspace/images/collectedimages'
+
+
+
+
+import cv2
+from cvzone.HandTrackingModule import HandDetector
+from cvzone.ClassificationModule import Classifier
+import numpy as np
+import math
+
+
+def launch_camera():
+    global cap
+    cap = cv2.VideoCapture(0)
+    detector = HandDetector(maxHands=2)
+    classifier = Classifier("ASLRecognitionRevived/Model/keras_model.h5", "ASLRecognitionRevived/Model/labels.txt")
+    
+    offset = 20
+    imgSize = 300
+    
+    labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y"]
+    
+    while True:
+        success, img = cap.read()
+        if not success:
+            continue  # Skip the iteration if the frame is not successfully captured
+    
+        imgOutput = img.copy()
+        hands, img = detector.findHands(img)
+        if hands:
+            hand = hands[0]
+            x, y, w, h = hand['bbox']
+    
+            imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
+    
+            # Ensure cropping coordinates are within the image boundaries
+            x1, y1 = max(x - offset, 0), max(y - offset, 0)
+            x2, y2 = min(x + w + offset, img.shape[1]), min(y + h + offset, img.shape[0])
+    
+            imgCrop = img[y1:y2, x1:x2]
+    
+            # Check if the cropped image is empty
+            if imgCrop.size == 0:
+                continue
+    
+            aspectRatio = h / w
+    
+            try:
+                if aspectRatio > 1:
+                    k = imgSize / h
+                    wCal = math.ceil(k * w)
+                    if wCal > 0:
+                        imgResize = cv2.resize(imgCrop, (wCal, imgSize))
+                        wGap = math.ceil((imgSize - wCal) / 2)
+                        imgWhite[:, wGap:wGap + wCal] = imgResize
+                        prediction, index = classifier.getPrediction(imgWhite, draw=False)
+    
+                else:
+                    k = imgSize / w
+                    hCal = math.ceil(k * h)
+                    if hCal > 0:
+                        imgResize = cv2.resize(imgCrop, (imgSize, hCal))
+                        hGap = math.ceil((imgSize - hCal) / 2)
+                        imgWhite[hGap:hGap + hCal, :] = imgResize
+                        prediction, index = classifier.getPrediction(imgWhite, draw=False)
+    
+                if prediction is not None and index < len(labels):
+                    label = labels[index]
+                    prob = round(prediction[index] * 100, 2)
+                    print(f'Prediction: {label}, Probability: {prob}%')
+                    cv2.putText(imgOutput, f'{label} {prob}%', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+    
+                cv2.imshow("ImageCrop", imgCrop)
+                cv2.imshow("Image", imgOutput)
+    
+            except Exception as e:
+                print(f"An error occurred: {e}")
+    
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    cap.release()
+    cv2.destroyAllWindows()
+    
+    cv2.destroyAllWindows()
 
 
 def HunterStuff(): #this to the end of function is hunter's code:
@@ -118,7 +202,7 @@ def menu():
     label1 = Label(canvas2, image=finalLogo).place(x=0, y=0)
     myLabel1 = Label(canvas, bg=color1, fg=color3, justify="center", font=('Modern', 15), text=("Press ")+ globalquit + (" to quit out of the camera.")).place(x=70, y=100, width = 330, height = 68)
     myLabel1 = Label(canvas, bg=color1, justify="center", font=('Modern', 15), text="Brought to you by: Austin, Hunter, and Emily").place(x=35, y=500, width=400, height=68)
-    myButton1 = Button(canvas, bg=color4, font=('Modern', 18, "bold"), justify="center", text="Launch Camera", command=camera).place(x=50, y=370, width=378, height=80)
+    myButton1 = Button(canvas, bg=color4, font=('Modern', 18, "bold"), justify="center", text="Launch Camera", command=launch_camera).place(x=50, y=370, width=378, height=80)
     myButton2 = Button(canvas, bg=color4, font=('Modern', 18, "bold"), justify="center", text="Instruction", command=instructions).place(x=50, y=190, width = 378, height =80)
     myButton3 = Button(canvas, bg=color4, font=('Modern', 18, "bold"), justify="center", text="ASL Dictionary", command=texttoimage).place(x=50, y=280, width=378, height=80)
     #myButton4 = Button(canvas, bg=color4, font=('Modern', 18, "bold"), justify="center", text="Settings", command=settings).place(x=50, y=430, width=378, height=68)
@@ -131,98 +215,6 @@ def closeAndopenSettings(self):
 def mouseClick():
     winsound.PlaySound('click.wav', winsound.SND_ALIAS | winsound.SND_ASYNC)
 
-def mediapipe_detection(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image.flags.writeable = False
-
-    # Process the image using the holistic model
-    results = holistic.process(image)
-
-    image.flags.writeable = True
-
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-    return image, results
-
-def tesseract2(imagepath, platform_id):
-    # The following is the path to the tesseract executable
-    #currently set up for both linux and windows, selects appropriate path automatically.
-    if platform_id == 'Linux':
-        path_to_tesseract = r"/bin/tesseract"
-    elif platform_id == 'Windows':
-        path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-    # Set the Tesseract executable path
-    pytesseract.tesseract_cmd = path_to_tesseract
-
-    # Use Tesseract to extract text from the captured image
-    text = pytesseract.image_to_string(Image.fromarray(imagepath))
-
-    # Print the extracted text, excluding the last character
-    print(text[:-1])
-
-# ... (existing code)
-
-def tesseract(imagepath, platform_id):
-    #currently set up for both linux and windows, selects appropriate path automatically.
-    if platform_id == 'Linux':
-        path_to_tesseract = r"/bin/tesseract"
-    elif platform_id == 'Windows':
-        path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-    pytesseract.tesseract_cmd = path_to_tesseract
-
-    text = pytesseract.image_to_string(Image.fromarray(imagepath))
-
-    words = text.split()
-
-    for word in words:
-        PlayWord(word)
-
-    print(text[:-1])
-
-def camera():
-    mouseClick()
-    camera = cv2.VideoCapture(0)
-
-    start_time = time.time()
-    time_interval = 7 #cap interval
-
-    while camera.isOpened():
-        ret, frame = camera.read()
-
-        image, results = mediapipe_detection(frame)
-        cv2.imshow('OpenCV Feed', image)
-
-        current_time = time.time()
-        elapsed_time = current_time - start_time
-
-        #only attempt to read the video footage every 7 seconds
-        if elapsed_time >= time_interval:
-            start_time = current_time
-
-            #feed to tesseract
-            tesseract(image, platform_id)
-
-        if cv2.waitKey(10) & 0xFF == ord(globalquit):
-            break
-
-    camera.release()
-    cv2.destroyAllWindows()
-    menu()
-
-#def settings():
-    #mouseClick()
-    #child = tkinter.Toplevel(root)
-    #child.geometry(align2)
-    #child.resizable(width=False, height=False)
-    #child.iconphoto(True, PhotoImage(file='Logo.png'))
-
-    #canvas = Canvas(child, bg=color2, width=width2, height=height2)
-    #canvas.pack()
-    #canvas2 = Canvas(canvas, bg=color1, width=625, height=height2)
-    #canvas2.place(x=35, y=0)
-    #myLabel = Label(canvas2, bg=color1, justify="center", font=('Modern', 30, "bold"), text=("Settings")).place(x=160, y=2, width=320, height=100)
 
 def texttoimage():
     mouseClick()
