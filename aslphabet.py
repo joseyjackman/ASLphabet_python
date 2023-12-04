@@ -375,7 +375,8 @@ def get_video_link(word):
         return video_url[0]
     else:
         print('cursor did not fetchone')
-        return None
+        #return None
+        return 'word_not_found.mp4'
 
 
 def get_letter_link(letter):
