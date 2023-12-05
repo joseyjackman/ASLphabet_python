@@ -1,0 +1,3 @@
+[submodule "ASLRecognitionRevived"]
+    path = ASLRecognitionRevived
+    url = https://github.com/Dracolightning08/ASLRecognition.git
